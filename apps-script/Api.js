@@ -43,16 +43,74 @@ var ACCIONES_PUBLICAS = {
   'cita.reprogramar': function (d) {
     return reprogramarCitaCliente(d.celular, d.codigo, d.inicio);
   },
+  'sesion.google': function (d) {
+    return iniciarSesionGoogle(d.credencial);
+  },
+  'sesion.config': function () {
+    var id = PropertiesService.getScriptProperties().getProperty('GOOGLE_CLIENT_ID');
+    return { googleClientId: id || null };
+  },
+};
+
+/** Acciones del panel del peluquero: requieren `token` de sesión válido. */
+var ACCIONES_PELUQUERO = {
+  'yo': function (p) {
+    return { peluquero: perfilPeluquero(p), noLeidas: contarNoLeidas(p) };
+  },
+  'agenda': function (p, d) {
+    return agendaDelPeluquero(p, d.fecha, d.vista);
+  },
+  'turno': function (p, d) {
+    return detalleTurno(p, d.id);
+  },
+  'turno.estado': function (p, d) {
+    return cambiarEstadoTurno(p, d.id, d.estado, d.motivo);
+  },
+  'turno.horarios': function (p, d) {
+    return horariosParaMover(p, d.id, d.fecha);
+  },
+  'turno.mover': function (p, d) {
+    return moverTurno(p, d.id, d.fecha, d.inicio);
+  },
+  'manual.horarios': function (p, d) {
+    return horariosParaManual(p, d.servicioIds, d.fecha);
+  },
+  'manual.crear': function (p, d) {
+    return registrarTurnoManual(p, d);
+  },
+  'servicios': function (p) {
+    return serviciosDelPeluquero(p);
+  },
+  'servicios.prestar': function (p, d) {
+    return guardarServiciosQuePresta(p, d.servicioIds);
+  },
+  'servicios.guardar': function (p, d) {
+    return guardarServicio(p, d.servicio || {});
+  },
+  'notificaciones': function (p) {
+    return notificacionesDelPeluquero(p);
+  },
+  'notificaciones.leer': function (p) {
+    return marcarNotificacionesLeidas(p);
+  },
+  'registro': function (p) {
+    return registroDelPeluquero(p);
+  },
 };
 
 /** Ejecuta una acción y devuelve el objeto de respuesta (sin envolver en HTTP). */
 function atender(peticion) {
   try {
     Db.reiniciar();
-    var accion = peticion && peticion.accion;
-    var manejador = Object.prototype.hasOwnProperty.call(ACCIONES_PUBLICAS, accion) ? ACCIONES_PUBLICAS[accion] : null;
-    if (!manejador) throw AppError('Acción desconocida.', 'ACCION_DESCONOCIDA');
-    return { ok: true, datos: manejador(peticion || {}) };
+    peticion = peticion || {};
+    var accion = peticion.accion;
+    var propia = function (tabla) { return Object.prototype.hasOwnProperty.call(tabla, accion); };
+    if (propia(ACCIONES_PUBLICAS)) return { ok: true, datos: ACCIONES_PUBLICAS[accion](peticion) };
+    if (propia(ACCIONES_PELUQUERO)) {
+      var peluquero = peluqueroDeSesion(peticion.token);
+      return { ok: true, datos: ACCIONES_PELUQUERO[accion](peluquero, peticion) };
+    }
+    throw AppError('Acción desconocida.', 'ACCION_DESCONOCIDA');
   } catch (e) {
     if (esAppError(e)) return { ok: false, error: e.message, codigo: e.codigo, datos: e.datos };
     console.error(e && e.stack ? e.stack : e);

@@ -181,3 +181,49 @@ input:focus, textarea:focus { border-color: var(--azul); }
   .portada h1 { font-size: 2.75rem; }
   .panel { padding: 28px; }
 }
+
+/* Panel del peluquero */
+.panel-cabecera { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.panel-cabecera p { margin: 0; }
+.enlace { background: none; border: 0; padding: 8px 0; font: inherit; color: var(--azul); text-decoration: underline; cursor: pointer; }
+.pestanas { display: flex; gap: 4px; overflow-x: auto; margin: 8px 0 16px; border-bottom: 2px solid var(--linea); }
+.pestanas a { padding: 10px 12px; text-decoration: none; color: var(--suave); font-weight: 600; white-space: nowrap; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+.pestanas a[aria-current='page'] { color: var(--carbon); border-bottom-color: var(--rojo); }
+.contador { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--rojo); color: #fff; font-size: 0.75rem; }
+.ingreso { text-align: center; }
+.boton-google { display: flex; justify-content: center; min-height: 48px; margin: 16px 0; }
+.boton-google .acciones { justify-content: center; }
+.agenda-barra { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.grupo { display: flex; gap: 6px; }
+.boton--chico { min-height: 40px; padding: 0 14px; font-size: 0.95rem; }
+.dia { margin-bottom: 8px; }
+.dia h2 { margin: 20px 0 2px; font-size: 1.15rem; }
+.dia--hoy h2 { color: var(--rojo-oscuro); }
+.etiqueta { font-family: var(--sans); font-size: 0.7rem; background: var(--rojo); color: #fff; padding: 2px 8px; border-radius: 999px; vertical-align: middle; }
+.turnos { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.turno { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; background: var(--papel); border: 1px solid var(--linea); border-left: 4px solid var(--verde); border-radius: 8px; color: inherit; text-decoration: none; box-shadow: var(--sombra); }
+.turno:hover { border-color: var(--carbon); }
+.turno--cancelada, .turno--no_asistio { opacity: 0.6; border-left-color: var(--suave); }
+.turno--en_atencion { border-left-color: var(--dorado); }
+.turno--completada { border-left-color: var(--azul); }
+.turno__hora { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 72px; }
+.turno__cuerpo { display: flex; flex-direction: column; min-width: 0; }
+.turno__cuerpo small { color: var(--suave); }
+.turno__cuerpo .advertencia { color: var(--rojo-oscuro); font-weight: 600; }
+.vacio { color: var(--suave); font-style: italic; margin: 4px 0; }
+.acciones--izq { justify-content: flex-start; }
+.lista { list-style: none; margin: 0; padding: 0; }
+.lista li { padding: 10px 0; border-bottom: 1px solid var(--linea); display: flex; flex-direction: column; gap: 2px; }
+.lista small { color: var(--suave); }
+.servicio-edicion { border-top: 1px solid var(--linea); padding-top: 12px; margin-top: 12px; }
+.rejilla { display: grid; gap: 0 12px; grid-template-columns: 1fr; }
+input[type='date'], input[type='number'] { width: 100%; font: inherit; padding: 12px; border: 1px solid #cbbfab; border-radius: 8px; background: #fff; }
+.estado--en_atencion { background: #f5ead2; color: #7a5a17; }
+.estado--completada { background: #e1e8f2; color: var(--azul); }
+@media (min-width: 640px) {
+  .rejilla { grid-template-columns: 2fr 1fr 1fr; }
+}
+@media (max-width: 420px) {
+  .turno { grid-template-columns: auto 1fr; }
+  .turno .estado { grid-column: 2; justify-self: start; }
+}
