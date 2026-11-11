@@ -19,8 +19,7 @@ var TABLAS = {
     nombre: 'texto',
     correo: 'texto',
     celular: 'texto',
-    clave_hash: 'texto',
-    clave_sal: 'texto',
+    // Subir este número cierra todas las sesiones abiertas del peluquero.
     version_sesion: 'entero',
     puede_editar_servicios: 'sino',
     recibe_reservas: 'sino',

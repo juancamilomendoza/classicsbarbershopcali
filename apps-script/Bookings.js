@@ -52,13 +52,15 @@ function prestaServicios(peluqueroId, servicios) {
   });
 }
 
-function validarCliente(cliente) {
+/** Valida los datos del cliente. En turnos manuales el correo es opcional. */
+function validarCliente(cliente, correoOpcional) {
   cliente = cliente || {};
   var nombre = String(cliente.nombre || '').trim();
   var celular = String(cliente.celular || '').replace(/[^\d+]/g, '');
   var correo = String(cliente.correo || '').trim().toLowerCase();
   if (nombre.length < 2 || nombre.length > 80) throw AppError('Escribe tu nombre.', 'DATOS_CLIENTE');
   if (!/^\+?\d{7,15}$/.test(celular)) throw AppError('Escribe un número de celular válido.', 'DATOS_CLIENTE');
+  if (correoOpcional && !correo) return { nombre: nombre, celular: celular, correo: '' };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo) || correo.length > 120) {
     throw AppError('Escribe un correo electrónico válido.', 'DATOS_CLIENTE');
   }
@@ -77,7 +79,7 @@ function validarCliente(cliente) {
  */
 function crearCita(datos) {
   var origen = datos.origen === 'manual' ? 'manual' : 'web';
-  var cliente = validarCliente(datos.cliente);
+  var cliente = validarCliente(datos.cliente, origen === 'manual');
   var inicio = Number(datos.inicio);
   if (!esFechaValida(datos.fecha) || !(inicio >= 0 && inicio < 1440)) {
     throw AppError('La fecha u hora no son válidas.', 'HORARIO_INVALIDO');

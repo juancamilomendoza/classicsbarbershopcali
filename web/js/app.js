@@ -454,19 +454,44 @@
     'privacidad': vistaPrivacidad,
   };
 
+  /** Ruta actual: '#/turno/5?x=1' → { nombre: 'turno', partes: ['5'], params: { x: '1' } }. */
+  function rutaActual() {
+    var texto = location.hash.replace(/^#\/?/, '');
+    var corte = texto.indexOf('?');
+    var camino = (corte === -1 ? texto : texto.slice(0, corte)).split('/');
+    var params = {};
+    new URLSearchParams(corte === -1 ? '' : texto.slice(corte + 1)).forEach(function (v, k) { params[k] = v; });
+    return { nombre: camino[0], partes: camino.slice(1), params: params };
+  }
+
   function navegar() {
-    var ruta = location.hash.replace(/^#\/?/, '').split('?')[0];
-    var vista = RUTAS[ruta] || vistaInicio;
-    if (ruta !== 'mi-cita') miCita = null;
+    var ruta = rutaActual();
+    var vista = RUTAS[ruta.nombre] || vistaInicio;
+    if (ruta.nombre !== 'mi-cita') miCita = null;
     document.querySelectorAll('.menu a').forEach(function (a) {
-      if (a.getAttribute('href') === '#/' + ruta) a.setAttribute('aria-current', 'page');
+      if (a.getAttribute('href') === '#/' + ruta.nombre) a.setAttribute('aria-current', 'page');
       else a.removeAttribute('aria-current');
     });
-    vista();
+    vista(ruta);
     window.scrollTo(0, 0);
   }
 
+  // Utilidades compartidas con el panel del peluquero (panel.js).
+  window.Tunero = {
+    esc: esc,
+    pesos: pesos,
+    minutos: minutos,
+    pintar: pintar,
+    cargando: cargando,
+    alerta: alerta,
+    enfocar: enfocar,
+    botonesHorario: botonesHorario,
+    mostrarError: mostrarError,
+    rutas: RUTAS,
+    navegar: navegar,
+  };
+
   if (window.TuneroDemo && window.TuneroDemo.activo) document.getElementById('aviso-demo').hidden = false;
   window.addEventListener('hashchange', navegar);
-  navegar();
+  window.addEventListener('DOMContentLoaded', navegar);
 })();

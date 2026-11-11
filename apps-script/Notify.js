@@ -77,8 +77,9 @@ function textoCita(cita, servicios, peluquero) {
 /**
  * Avisa al cliente y al peluquero de un evento de la cita.
  * evento: 'creada' | 'cancelada' | 'reprogramada'
+ * porPeluquero: true cuando el cambio lo hizo el mismo peluquero (no se le avisa).
  */
-function notificarCita(cita, evento) {
+function notificarCita(cita, evento, porPeluquero) {
   try {
     var servicios = Db.donde('CitaServicios', function (s) { return s.cita_id === cita.id; });
     var peluquero = Db.porId('Peluqueros', cita.peluquero_id);
@@ -103,6 +104,7 @@ function notificarCita(cita, evento) {
       CONFIG.NOMBRE_NEGOCIO,
     ].join('\n');
     enviarCorreo(cita.cliente_correo, CONFIG.NOMBRE_NEGOCIO + ': ' + titulos[evento], cuerpo);
+    if (porPeluquero) return;
 
     var verbos = { creada: 'Nueva cita', cancelada: 'Cita cancelada', reprogramada: 'Cita reprogramada' };
     avisarPeluquero(

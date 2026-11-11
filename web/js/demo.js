@@ -9,13 +9,26 @@
 
   var ARCHIVOS = [
     'Config.js', 'Errors.js', 'Time.js', 'Schema.js', 'Db.js', 'SheetsBackend.js', 'Availability.js',
-    'Agenda.js', 'Registro.js', 'Notify.js', 'Bookings.js', 'Clientes.js', 'Setup.js', 'Api.js',
+    'Agenda.js', 'Registro.js', 'Notify.js', 'Bookings.js', 'Clientes.js', 'Sesiones.js', 'GoogleAuth.js',
+    'Peluqueros.js', 'Setup.js', 'Api.js',
   ];
-  var LLAVE = 'tunero-demo-hoja-v1';
+  var LLAVE = 'tunero-demo-hoja-v2';
 
   window.TuneroDemo = {
     activo: !window.TUNERO_CONFIG.API_URL,
     listo: null,
+    /** En la demostración se entra sin Google, eligiendo un peluquero de ejemplo. */
+    iniciarSesion: function (peluqueroId) {
+      return window.TuneroDemo.listo.then(function () {
+        var p = Db.porId('Peluqueros', peluqueroId);
+        return { token: crearSesion(p), peluquero: perfilPeluquero(p) };
+      });
+    },
+    peluquerosDemo: function () {
+      return window.TuneroDemo.listo.then(function () {
+        return Db.todos('Peluqueros').map(function (p) { return { id: p.id, nombre: p.nombre }; });
+      });
+    },
     reiniciar: function () {
       try { localStorage.removeItem(LLAVE); } catch (e) { /* sin almacenamiento */ }
       location.reload();
@@ -37,6 +50,30 @@
       var b = new Uint8Array(16);
       crypto.getRandomValues(b);
       return Array.prototype.map.call(b, function (x) { return (x + 256).toString(16).slice(1); }).join('');
+    },
+  };
+  // Firma simple solo para la demostración (en Apps Script se usa HMAC-SHA256).
+  Utilities.computeHmacSha256Signature = function (valor, llave) {
+    var texto = llave + '|' + valor;
+    var bytes = [];
+    for (var ronda = 0; ronda < 16; ronda++) {
+      var h = 2166136261 ^ ronda;
+      for (var i = 0; i < texto.length; i++) h = Math.imul(h ^ texto.charCodeAt(i), 16777619);
+      bytes.push((h >>> 24) - 128, ((h >>> 16) & 255) - 128);
+    }
+    return bytes;
+  };
+  Utilities.base64EncodeWebSafe = function (bytes) {
+    return btoa(String.fromCharCode.apply(null, bytes.map(function (b) { return (b + 256) % 256; })))
+      .replace(/\+/g, '-').replace(/\//g, '_');
+  };
+  var propiedades = {};
+  window.PropertiesService = {
+    getScriptProperties: function () {
+      return {
+        getProperty: function (k) { try { return localStorage.getItem('tunero-demo-prop-' + k); } catch (e) { return propiedades[k] || null; } },
+        setProperty: function (k, v) { try { localStorage.setItem('tunero-demo-prop-' + k, v); } catch (e) { propiedades[k] = v; } },
+      };
     },
   };
   window.LockService = { getScriptLock: function () { return { tryLock: function () { return true; }, releaseLock: function () {} }; } };
@@ -64,7 +101,9 @@
     // Dos peluqueros de ejemplo, lunes a sábado de 9:00 a 7:00 p. m. con almuerzo.
     cargarServiciosIniciales();
     [['Tunero', 'tunero@example.com'], ['Carlos', 'carlos@example.com']].forEach(function (d) {
-      var p = Db.insertar('Peluqueros', { nombre: d[0], correo: d[1], recibe_reservas: true, activo: true });
+      var p = Db.insertar('Peluqueros', {
+        nombre: d[0], correo: d[1], recibe_reservas: true, activo: true, version_sesion: 0, puede_editar_servicios: d[0] === 'Tunero',
+      });
       [1, 2, 3, 4, 5, 6].forEach(function (dia) {
         Db.insertar('HorarioSemanal', { peluquero_id: p.id, dia_semana: dia, inicio: 540, fin: 1140 });
         Db.insertar('Descansos', { peluquero_id: p.id, dia_semana: dia, inicio: 780, fin: 840, nombre: 'Almuerzo' });

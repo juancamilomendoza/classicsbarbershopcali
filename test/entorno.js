@@ -31,12 +31,24 @@ function crearEntorno({ ahora = '2026-11-11T15:00:00-05:00' } = {}) {
   const correos = [];
   const cache = new Map();
   const correo = { falla: false };
+  const propiedades = { GOOGLE_CLIENT_ID: 'cliente-tunero.apps.googleusercontent.com' };
 
   const contexto = {
     console,
     Utilities: {
       formatDate: (fecha, zona) => formatoFecha(fecha, zona),
       getUuid: () => crypto.randomUUID(),
+      computeHmacSha256Signature: (valor, llave) =>
+        Array.from(crypto.createHmac('sha256', llave).update(valor).digest()).map((b) => (b > 127 ? b - 256 : b)),
+      base64EncodeWebSafe: (bytes) => Buffer.from(bytes.map((b) => (b + 256) % 256)).toString('base64url') + '=',
+    },
+    PropertiesService: {
+      getScriptProperties: () => ({
+        getProperty: (k) => (k in propiedades ? propiedades[k] : null),
+        setProperty: (k, v) => {
+          propiedades[k] = v;
+        },
+      }),
     },
     LockService: {
       getScriptLock: () => ({
@@ -103,6 +115,7 @@ function crearEntorno({ ahora = '2026-11-11T15:00:00-05:00' } = {}) {
     candado,
     correos,
     correo,
+    propiedades,
     fijarAhora(iso) {
       instante = new Date(iso);
     },

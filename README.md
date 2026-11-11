@@ -20,8 +20,10 @@ que dos clientes no pueden quedarse con el mismo horario.
 ## Decisiones del negocio
 
 - Los clientes **no crean cuenta**: reservan con nombre, celular y correo, y
-  reciben un código para consultar, cancelar o reprogramar su cita. Solo los
-  peluqueros inician sesión.
+  reciben un código para consultar, cancelar o reprogramar su cita.
+- Los peluqueros entran con **"Iniciar sesión con Google"** (gratis). Solo
+  pueden entrar los correos registrados en la pestaña `Peluqueros`; no se
+  guardan contraseñas.
 - La duración de una cita es la suma de sus servicios: Corte 20 min, Barba 5 min,
   Cejas 30 min (corte + barba = 25, los tres = 55).
 - Los clientes solo reservan para el **día calendario siguiente**, según la hora
@@ -46,6 +48,9 @@ apps-script/        Código de la API (se copia al proyecto de Apps Script)
   Agenda.js         Carga la agenda de un peluquero desde la hoja
   Bookings.js       Creación de citas
   Clientes.js       Consultar, cancelar y reprogramar con celular + código
+  GoogleAuth.js     Inicio de sesión con Google de los peluqueros
+  Sesiones.js       Tokens de sesión firmados
+  Peluqueros.js     Panel del peluquero: agenda, estados, turnos manuales, servicios
   Notify.js         Correos y avisos (pestañas Envios y Notificaciones)
   Registro.js       Historial de cambios
   Setup.js          Función instalar(): crea las pestañas
@@ -53,6 +58,8 @@ apps-script/        Código de la API (se copia al proyecto de Apps Script)
 web/                Página web (HTML, CSS y JavaScript, sin compilar)
   js/config.js      Dirección de la API
   js/demo.js        Modo demostración (sin API, datos en el navegador)
+  js/app.js         Pantallas del cliente
+  js/panel.js       Panel del peluquero
 test/               Pruebas automáticas (Node.js)
 scripts/            Servidor local para probar la página
 ```
@@ -92,6 +99,49 @@ implementaciones → Editar → Versión: nueva** para que la URL siga siendo la
 
 Para reintentar correos fallidos automáticamente, en **Activadores** (reloj)
 agregue uno para la función `reintentarEnvios`, por tiempo, cada hora.
+
+## Agregar un peluquero
+
+En la pestaña `Peluqueros`, agregue una fila con:
+
+| Columna | Valor |
+| --- | --- |
+| `id` | Un número que no se repita (1, 2, 3…) |
+| `nombre` | Como lo verán los clientes |
+| `correo` | **Su cuenta de Gmail** (con ella inicia sesión) |
+| `celular` | Opcional |
+| `version_sesion` | `0` |
+| `puede_editar_servicios` | `SI` si puede cambiar el catálogo y los precios, si no `NO` |
+| `recibe_reservas` | `SI` |
+| `activo` | `SI` (ponga `NO` para quitarle el acceso) |
+
+Luego, en la pestaña `HorarioSemanal`, una fila por cada día que trabaja:
+`peluquero_id`, `dia_semana` (lunes, martes…), `inicio` y `fin` (por ejemplo
+`09:00` y `19:00`). Los descansos van en `Descansos` de la misma forma. Desde la
+fase 4 esto se hará desde el panel.
+
+El peluquero entra desde el enlace **Acceso peluqueros** al pie de la página y
+marca en **Servicios** qué servicios presta. Para cerrar todas sus sesiones
+abiertas (por ejemplo, si pierde el celular), sume 1 a su `version_sesion`.
+
+## Configurar "Iniciar sesión con Google" (una sola vez, gratis)
+
+1. Entre a [Google Cloud Console](https://console.cloud.google.com/) con la
+   cuenta de la barbería y cree un proyecto (por ejemplo "Tunero").
+2. En **APIs y servicios → Pantalla de consentimiento de OAuth**, elija
+   **Externo**, ponga el nombre "TUNERO CLASSIC BARBER" y su correo, y guarde.
+   Luego pulse **Publicar app** para que cualquier peluquero pueda entrar.
+3. En **APIs y servicios → Credenciales → Crear credenciales → ID de cliente de
+   OAuth**, elija **Aplicación web**. En **Orígenes autorizados de JavaScript**
+   agregue la dirección de la página, por ejemplo
+   `https://juancamilomendoza.github.io` (y `http://localhost:8080` para
+   pruebas). Guarde y copie el **ID de cliente** (termina en
+   `.apps.googleusercontent.com`).
+4. En el editor de Apps Script: **Configuración del proyecto → Propiedades de la
+   secuencia de comandos → Agregar propiedad**. Nombre: `GOOGLE_CLIENT_ID`,
+   valor: el ID copiado.
+5. Publique una nueva versión de la API (ver arriba), porque esta fase usa un
+   permiso nuevo para consultar a Google.
 
 ## Publicar la página en GitHub Pages
 
@@ -135,6 +185,6 @@ pruebas en cada cambio.
 | --- | --- | --- |
 | 1 | Base, pestañas de la hoja, motor de disponibilidad | Hecha |
 | 2 | Reserva del cliente (página web + API) | Hecha |
-| 3 | Agenda del peluquero | Pendiente |
+| 3 | Inicio de sesión con Google y agenda del peluquero | Hecha |
 | 4 | Horario, descansos, bloqueos, vacaciones y ausencias | Pendiente |
 | 5 | Notificaciones, historial y publicación en GitHub Pages | Pendiente |
