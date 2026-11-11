@@ -227,3 +227,35 @@ input[type='date'], input[type='number'] { width: 100%; font: inherit; padding: 
   .turno { grid-template-columns: auto 1fr; }
   .turno .estado { grid-column: 2; justify-self: start; }
 }
+
+/* Mi horario */
+select { width: 100%; font: inherit; padding: 12px; border: 1px solid #cbbfab; border-radius: 8px; background: #fff; color: inherit; }
+input[type='time'] { font: inherit; padding: 10px; border: 1px solid #cbbfab; border-radius: 8px; background: #fff; width: 100%; }
+.interruptor { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.interruptor p { margin: 4px 0 0; }
+.fila { flex-direction: row !important; justify-content: space-between; align-items: center; gap: 12px; }
+.fila > div { display: flex; flex-direction: column; min-width: 0; }
+.semana { display: grid; gap: 8px; }
+.semana__dia { display: grid; grid-template-columns: 1fr 1fr auto 1fr; gap: 8px; align-items: center; }
+.semana__nombre { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.semana__nombre input { width: 20px; height: 20px; accent-color: var(--rojo); }
+.semana__dia:has(input[type='checkbox']:not(:checked)) input[type='time'] { opacity: 0.4; }
+.dias { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.dia-chip input { position: absolute; opacity: 0; }
+.dia-chip span { display: inline-block; padding: 8px 12px; border: 2px solid var(--linea); border-radius: 999px; background: #fff; font-weight: 600; cursor: pointer; }
+.dia-chip input:checked + span { background: var(--carbon); border-color: var(--carbon); color: var(--crema); }
+.dia-chip input:focus-visible + span { outline: 3px solid var(--dorado); outline-offset: 2px; }
+.rejilla--2, .rejilla--3 { grid-template-columns: 1fr 1fr; }
+.rejilla--3 > :first-child { grid-column: 1 / -1; }
+@media (min-width: 640px) {
+  .rejilla--3 { grid-template-columns: 2fr 1fr 1fr; }
+  .rejilla--3 > :first-child { grid-column: auto; }
+}
+@media (max-width: 380px) {
+  .semana__dia { grid-template-columns: 1fr 1fr; }
+  .semana__nombre { grid-column: 1 / -1; }
+  .semana__dia span[aria-hidden] { display: none; }
+}
+/* Los campos de fecha y hora no deben ensanchar la página en celulares. */
+input, select, textarea { min-width: 0; max-width: 100%; }
+.rejilla > *, .semana__dia > * { min-width: 0; }

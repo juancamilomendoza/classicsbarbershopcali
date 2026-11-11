@@ -51,6 +51,7 @@ apps-script/        Código de la API (se copia al proyecto de Apps Script)
   GoogleAuth.js     Inicio de sesión con Google de los peluqueros
   Sesiones.js       Tokens de sesión firmados
   Peluqueros.js     Panel del peluquero: agenda, estados, turnos manuales, servicios
+  Horario.js        Jornada, descansos, ausencias, bloqueos y pausa de reservas
   Notify.js         Correos y avisos (pestañas Envios y Notificaciones)
   Registro.js       Historial de cambios
   Setup.js          Función instalar(): crea las pestañas
@@ -115,10 +116,11 @@ En la pestaña `Peluqueros`, agregue una fila con:
 | `recibe_reservas` | `SI` |
 | `activo` | `SI` (ponga `NO` para quitarle el acceso) |
 
-Luego, en la pestaña `HorarioSemanal`, una fila por cada día que trabaja:
-`peluquero_id`, `dia_semana` (lunes, martes…), `inicio` y `fin` (por ejemplo
-`09:00` y `19:00`). Los descansos van en `Descansos` de la misma forma. Desde la
-fase 4 esto se hará desde el panel.
+El peluquero configura su jornada, descansos, vacaciones, días libres,
+permisos, bloqueos y horarios especiales desde **Mi horario** en su panel.
+Si un cambio afecta citas ya confirmadas, la app muestra la lista antes de
+guardarlo y pregunta si cancelarlas (avisando a los clientes por correo) o
+conservarlas para moverlas una por una.
 
 El peluquero entra desde el enlace **Acceso peluqueros** al pie de la página y
 marca en **Servicios** qué servicios presta. Para cerrar todas sus sesiones
@@ -186,5 +188,5 @@ pruebas en cada cambio.
 | 1 | Base, pestañas de la hoja, motor de disponibilidad | Hecha |
 | 2 | Reserva del cliente (página web + API) | Hecha |
 | 3 | Inicio de sesión con Google y agenda del peluquero | Hecha |
-| 4 | Horario, descansos, bloqueos, vacaciones y ausencias | Pendiente |
+| 4 | Horario, descansos, bloqueos, vacaciones y ausencias | Hecha |
 | 5 | Notificaciones, historial y publicación en GitHub Pages | Pendiente |
