@@ -5,6 +5,7 @@
  *   #/agenda?fecha=&vista=  Agenda por día o por semana
  *   #/turno/<id>            Detalle, estado, cancelar o mover
  *   #/turno-nuevo           Registrar un turno recibido por otro canal
+ *   #/horario               Jornada, descansos, ausencias, bloqueos y vacaciones
  *   #/mis-servicios         Servicios que presta (y catálogo, con permiso)
  *   #/avisos                Notificaciones
  *   #/historial             Registro de cambios
@@ -67,6 +68,7 @@
     var enlaces = [
       ['agenda', 'Agenda'],
       ['turno-nuevo', 'Nuevo turno'],
+      ['horario', 'Mi horario'],
       ['mis-servicios', 'Servicios'],
       ['avisos', 'Avisos' + (yo && yo.noLeidas ? ' <span class="contador">' + yo.noLeidas + '</span>' : '')],
       ['historial', 'Historial'],
@@ -434,6 +436,19 @@
     servicios_prestados: 'Servicios que presta',
     servicio_editado: 'Servicio editado',
     servicio_creado: 'Servicio creado',
+    horario_semanal: 'Jornada semanal',
+    descanso_agregado: 'Descanso agregado',
+    descanso_eliminado: 'Descanso eliminado',
+    horario_especial: 'Horario especial',
+    horario_especial_eliminado: 'Horario especial eliminado',
+    ausencia_vacaciones: 'Vacaciones',
+    ausencia_dia_libre: 'Día libre',
+    ausencia_permiso: 'Permiso',
+    ausencia_imprevista: 'Ausencia imprevista',
+    ausencia_bloqueo: 'Bloqueo de horario',
+    ausencia_terminada: 'Ausencia terminada antes',
+    reservas_pausadas: 'Reservas pausadas',
+    reservas_reanudadas: 'Reservas reanudadas',
   };
 
   function vistaHistorial() {
@@ -452,7 +467,210 @@
     }).catch(function (e) { pintarPanel('historial', T.alerta('error', e.message)); });
   }
 
+  // ---------- mi horario ----------
+
+  var TIPOS = [
+    ['vacaciones', 'Vacaciones'],
+    ['dia_libre', 'Día libre'],
+    ['permiso', 'Permiso'],
+    ['imprevista', 'Ausencia imprevista (incapacidad, emergencia)'],
+    ['bloqueo', 'Bloquear una franja de un día'],
+  ];
+  var DIAS = [[1, 'Lun'], [2, 'Mar'], [3, 'Mié'], [4, 'Jue'], [5, 'Vie'], [6, 'Sáb'], [0, 'Dom']];
+
+  function hoyColombia() {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+  }
+
+  /**
+   * Envía un cambio de horario. Si afecta citas confirmadas, muestra la lista
+   * y pide decidir antes de aplicarlo (cancelar y avisar, o conservar).
+   */
+  function enviarCambio(accion, datos, zona, alTerminar) {
+    zona.innerHTML = T.cargando('Guardando…');
+    return llamar(accion, datos).then(alTerminar).catch(function (e) {
+      if (e.codigo !== 'CITAS_AFECTADAS') { zona.innerHTML = T.alerta('error', e.message); return; }
+      zona.innerHTML =
+        '<div class="confirmar" role="alertdialog" aria-labelledby="t-afectadas">' +
+        '<p id="t-afectadas"><strong>' + esc(e.message) + '</strong> El cambio todavía no se ha guardado.</p>' +
+        '<ul class="lista">' + e.datos.citas.map(function (c) {
+          return '<li><a href="#/turno/' + c.id + '">' + esc(c.cliente) + '</a><small>' + esc(c.fechaLegible) + ', ' + esc(c.horaTexto) + '</small></li>';
+        }).join('') + '</ul>' +
+        '<div class="acciones acciones--izq">' +
+        '<button class="boton boton--secundario" type="button" data-r="">No guardar</button>' +
+        '<button class="boton boton--secundario" type="button" data-r="conservar">Guardar y mover las citas yo</button>' +
+        '<button class="boton boton--peligro" type="button" data-r="cancelar">Guardar y cancelar las citas</button>' +
+        '</div><p class="nota">Si las cancelas, cada cliente recibe un correo. Si las conservas, quedan marcadas en tu agenda para que las muevas.</p></div>';
+      zona.querySelectorAll('[data-r]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (!b.dataset.r) { zona.innerHTML = ''; return; }
+          enviarCambio(accion, Object.assign({}, datos, { resolucion: b.dataset.r }), zona, alTerminar);
+        });
+      });
+      zona.querySelector('[data-r="conservar"]').focus();
+    });
+  }
+
+  function vistaHorario(ruta, aviso) {
+    pintarPanel('horario', T.cargando());
+    llamar('horario').then(function (h) { pintarHorario(h, aviso); })
+      .catch(function (e) { pintarPanel('horario', T.alerta('error', e.message)); });
+  }
+
+  function pintarHorario(h, aviso) {
+    var hoy = hoyColombia();
+    var listo = function (texto) { return function (nuevo) { pintarHorario(nuevo, texto); }; };
+
+    pintarPanel('horario',
+      (aviso ? T.alerta('ok', aviso) : '') +
+      // Reservas en línea
+      '<section class="panel"><h1>Mi horario</h1>' +
+      '<div class="interruptor"><div><strong>' + (h.recibeReservas ? 'Recibiendo reservas en línea' : 'Reservas en línea pausadas') + '</strong>' +
+      '<p class="ayuda">' + (h.recibeReservas ? 'Los clientes pueden reservar contigo para mañana.' : 'Nadie puede reservar contigo en la web. Tu horario y tus citas se mantienen.') + '</p></div>' +
+      '<button class="boton ' + (h.recibeReservas ? 'boton--secundario' : '') + '" id="reservas">' + (h.recibeReservas ? 'Pausar reservas' : 'Reanudar reservas') + '</button></div>' +
+      '<div id="z-reservas"></div></section>' +
+
+      // Ausencias
+      '<section class="panel"><h2>Ausencias y bloqueos</h2>' +
+      (h.ausencias.length
+        ? '<ul class="lista">' + h.ausencias.map(function (a) {
+            var cuando = a.tipo === 'bloqueo'
+              ? a.desdeLegible + ', ' + a.inicio + ' a ' + a.fin
+              : (a.fechaInicio === a.fechaFin ? a.desdeLegible : 'Del ' + a.desdeLegible + ' al ' + a.hastaLegible);
+            return '<li class="fila"><div><strong>' + esc(a.tipoTexto) + (a.enCurso ? ' <span class="etiqueta">En curso</span>' : '') + '</strong>' +
+              '<small>' + esc(cuando) + (a.motivo ? ' · ' + esc(a.motivo) : '') + '</small></div>' +
+              '<button class="boton boton--secundario boton--chico" data-terminar="' + a.id + '">' + (a.enCurso && a.tipo !== 'bloqueo' ? 'Volver hoy' : 'Quitar') + '</button></li>';
+          }).join('') + '</ul>'
+        : '<p class="vacio">No tienes ausencias programadas.</p>') +
+      '<form id="f-ausencia" class="subpanel" novalidate><h3>Agregar</h3>' +
+      '<div class="campo"><label for="tipo">Tipo</label><select id="tipo" name="tipo">' +
+      TIPOS.map(function (t) { return '<option value="' + t[0] + '">' + t[1] + '</option>'; }).join('') + '</select></div>' +
+      '<div class="rejilla rejilla--2"><div class="campo"><label for="desde" id="l-desde">Desde</label><input id="desde" name="fechaInicio" type="date" min="' + hoy + '" value="' + hoy + '"></div>' +
+      '<div class="campo" id="c-hasta"><label for="hasta">Hasta (incluido)</label><input id="hasta" name="fechaFin" type="date" min="' + hoy + '" value="' + hoy + '"></div>' +
+      '<div class="campo" id="c-ini" hidden><label for="a-ini">De</label><input id="a-ini" name="inicio" type="time" step="300" value="12:00"></div>' +
+      '<div class="campo" id="c-fin" hidden><label for="a-fin">A</label><input id="a-fin" name="fin" type="time" step="300" value="13:00"></div></div>' +
+      '<div class="campo"><label for="motivo-a">Nota <span class="opcional">(opcional, solo la ves tú)</span></label><input id="motivo-a" name="motivo" maxlength="200"></div>' +
+      '<div class="acciones"><button class="boton" type="submit">Agregar</button></div><div id="z-ausencia"></div></form></section>' +
+
+      // Jornada semanal
+      '<form id="f-semana" class="panel"><h2>Jornada habitual</h2>' +
+      '<div class="semana">' + h.semana.map(function (d) {
+        return '<div class="semana__dia"><label class="semana__nombre"><input type="checkbox" name="trabaja-' + d.dia + '"' + (d.trabaja ? ' checked' : '') + '> ' + esc(d.nombre.charAt(0).toUpperCase() + d.nombre.slice(1)) + '</label>' +
+          '<input type="time" step="300" name="inicio-' + d.dia + '" aria-label="Inicio ' + esc(d.nombre) + '" value="' + esc(d.inicio || '09:00') + '">' +
+          '<span aria-hidden="true">a</span>' +
+          '<input type="time" step="300" name="fin-' + d.dia + '" aria-label="Fin ' + esc(d.nombre) + '" value="' + esc(d.fin || '19:00') + '"></div>';
+      }).join('') + '</div>' +
+      '<div class="acciones"><button class="boton" type="submit">Guardar jornada</button></div><div id="z-semana"></div></form>' +
+
+      // Descansos
+      '<section class="panel"><h2>Descansos</h2><p class="ayuda">Se repiten cada semana; en ellos no se reciben citas.</p>' +
+      (h.descansos.length
+        ? '<ul class="lista">' + h.descansos.map(function (d) {
+            return '<li class="fila"><div><strong>' + esc(d.nombre || 'Descanso') + '</strong><small>' + esc(d.diaNombre) + ', ' + d.inicio + ' a ' + d.fin + '</small></div>' +
+              '<button class="boton boton--secundario boton--chico" data-descanso="' + d.id + '">Quitar</button></li>';
+          }).join('') + '</ul>'
+        : '<p class="vacio">Sin descansos.</p>') +
+      '<form id="f-descanso" class="subpanel" novalidate><h3>Agregar descanso</h3>' +
+      '<fieldset><legend class="ayuda">Días</legend><div class="dias">' + DIAS.map(function (d) {
+        return '<label class="dia-chip"><input type="checkbox" name="dia" value="' + d[0] + '"' + (d[0] >= 1 && d[0] <= 6 ? ' checked' : '') + '><span>' + d[1] + '</span></label>';
+      }).join('') + '</div></fieldset>' +
+      '<div class="rejilla rejilla--3"><div class="campo"><label for="d-nombre">Nombre</label><input id="d-nombre" name="nombre" value="Almuerzo" maxlength="40"></div>' +
+      '<div class="campo"><label for="d-ini">De</label><input id="d-ini" name="inicio" type="time" step="300" value="13:00"></div>' +
+      '<div class="campo"><label for="d-fin">A</label><input id="d-fin" name="fin" type="time" step="300" value="14:00"></div></div>' +
+      '<div class="acciones"><button class="boton" type="submit">Agregar descanso</button></div><div id="z-descanso"></div></form></section>' +
+
+      // Horarios especiales
+      '<section class="panel"><h2>Horarios especiales</h2><p class="ayuda">Una jornada distinta para una fecha concreta (por ejemplo, un festivo).</p>' +
+      (h.especiales.length
+        ? '<ul class="lista">' + h.especiales.map(function (e) {
+            return '<li class="fila"><div><strong>' + esc(e.fechaLegible) + '</strong><small>' + e.inicio + ' a ' + e.fin + (e.nota ? ' · ' + esc(e.nota) : '') + '</small></div>' +
+              '<button class="boton boton--secundario boton--chico" data-especial="' + e.id + '">Quitar</button></li>';
+          }).join('') + '</ul>'
+        : '<p class="vacio">Sin horarios especiales.</p>') +
+      '<form id="f-especial" class="subpanel" novalidate><h3>Agregar horario especial</h3>' +
+      '<div class="rejilla rejilla--3"><div class="campo"><label for="e-fecha">Fecha</label><input id="e-fecha" name="fecha" type="date" min="' + hoy + '"></div>' +
+      '<div class="campo"><label for="e-ini">De</label><input id="e-ini" name="inicio" type="time" step="300" value="09:00"></div>' +
+      '<div class="campo"><label for="e-fin">A</label><input id="e-fin" name="fin" type="time" step="300" value="14:00"></div></div>' +
+      '<div class="campo"><label for="e-nota">Nota <span class="opcional">(opcional)</span></label><input id="e-nota" name="nota" maxlength="100"></div>' +
+      '<div class="acciones"><button class="boton" type="submit">Agregar</button></div><div id="z-especial"></div></form></section>'
+    );
+
+    // Reservas en línea
+    document.getElementById('reservas').addEventListener('click', function () {
+      enviarCambio('horario.reservas', { recibe: !h.recibeReservas }, document.getElementById('z-reservas'),
+        listo(h.recibeReservas ? 'Reservas pausadas.' : 'Reservas reanudadas.'));
+    });
+
+    // Ausencias
+    var fa = document.getElementById('f-ausencia');
+    var ajustarTipo = function () {
+      var bloqueo = fa.tipo.value === 'bloqueo';
+      document.getElementById('c-hasta').hidden = bloqueo;
+      document.getElementById('c-ini').hidden = !bloqueo;
+      document.getElementById('c-fin').hidden = !bloqueo;
+      document.getElementById('l-desde').textContent = bloqueo ? 'Fecha' : 'Desde';
+    };
+    fa.tipo.addEventListener('change', ajustarTipo);
+    fa.fechaInicio.addEventListener('change', function () { if (fa.fechaFin.value < fa.fechaInicio.value) fa.fechaFin.value = fa.fechaInicio.value; });
+    fa.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var d = new FormData(fa);
+      var datos = { tipo: d.get('tipo'), fechaInicio: d.get('fechaInicio'), fechaFin: d.get('fechaFin'), motivo: d.get('motivo') };
+      if (datos.tipo === 'bloqueo') { datos.inicio = d.get('inicio'); datos.fin = d.get('fin'); }
+      enviarCambio('horario.ausencia', datos, document.getElementById('z-ausencia'), listo('Ausencia guardada. Tu disponibilidad ya está actualizada.'));
+    });
+    document.querySelectorAll('[data-terminar]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        b.disabled = true;
+        llamar('horario.ausencia.terminar', { id: Number(b.dataset.terminar) }).then(listo('Listo. Tus horarios vuelven a estar disponibles; los demás bloqueos siguen vigentes.'))
+          .catch(function (e) { b.disabled = false; T.mostrarError(e); });
+      });
+    });
+
+    // Jornada semanal
+    var fs = document.getElementById('f-semana');
+    fs.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var dias = h.semana.map(function (d) {
+        return { dia: d.dia, trabaja: fs['trabaja-' + d.dia].checked, inicio: fs['inicio-' + d.dia].value, fin: fs['fin-' + d.dia].value };
+      });
+      enviarCambio('horario.semana', { dias: dias }, document.getElementById('z-semana'), listo('Jornada guardada.'));
+    });
+
+    // Descansos
+    var fd = document.getElementById('f-descanso');
+    fd.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var dias = Array.prototype.filter.call(fd.querySelectorAll('[name=dia]'), function (c) { return c.checked; }).map(function (c) { return Number(c.value); });
+      enviarCambio('horario.descanso', { dias: dias, inicio: fd.inicio.value, fin: fd.fin.value, nombre: fd.nombre.value },
+        document.getElementById('z-descanso'), listo('Descanso agregado.'));
+    });
+    document.querySelectorAll('[data-descanso]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        b.disabled = true;
+        llamar('horario.descanso.borrar', { id: Number(b.dataset.descanso) }).then(listo('Descanso quitado.')).catch(T.mostrarError);
+      });
+    });
+
+    // Horarios especiales
+    var fe = document.getElementById('f-especial');
+    fe.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      if (!fe.fecha.value) { document.getElementById('z-especial').innerHTML = T.alerta('error', 'Elige la fecha.'); return; }
+      enviarCambio('horario.especial', { fecha: fe.fecha.value, inicio: fe.inicio.value, fin: fe.fin.value, nota: fe.nota.value },
+        document.getElementById('z-especial'), listo('Horario especial guardado.'));
+    });
+    document.querySelectorAll('[data-especial]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var zona = document.createElement('div');
+        b.closest('li').appendChild(zona);
+        enviarCambio('horario.especial.borrar', { id: Number(b.dataset.especial) }, zona, listo('Horario especial quitado.'));
+      });
+    });
+  }
+
   Object.assign(T.rutas, {
+    'horario': protegida(vistaHorario),
     'panel': vistaIngreso,
     'agenda': protegida(vistaAgenda),
     'turno': protegida(vistaTurno),

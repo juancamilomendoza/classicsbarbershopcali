@@ -1,0 +1,15 @@
+# Publicación en Netlify (gratis). Netlify toma el código de GitHub en cada
+# cambio de la rama main, corre las pruebas y publica la carpeta _site.
+[build]
+  command = "npm test && rm -rf _site && mkdir -p _site && cp -r web/. _site/ && cp -r apps-script _site/apps-script"
+  publish = "_site"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Cabeceras básicas de seguridad.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

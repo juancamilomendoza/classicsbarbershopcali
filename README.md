@@ -9,7 +9,7 @@ Todo funciona con servicios gratuitos:
 
 | Pieza | Dónde vive | Qué hace |
 | --- | --- | --- |
-| Página web | GitHub Pages (`web/`) | Pantallas para clientes y peluqueros |
+| Página web | Netlify o GitHub Pages (`web/`) | Pantallas para clientes y peluqueros |
 | API | Google Apps Script (`apps-script/`) | Reglas de negocio, horarios, permisos, correos |
 | Datos | Google Sheets | Una pestaña por tabla |
 
@@ -51,6 +51,7 @@ apps-script/        Código de la API (se copia al proyecto de Apps Script)
   GoogleAuth.js     Inicio de sesión con Google de los peluqueros
   Sesiones.js       Tokens de sesión firmados
   Peluqueros.js     Panel del peluquero: agenda, estados, turnos manuales, servicios
+  Horario.js        Jornada, descansos, ausencias, bloqueos y pausa de reservas
   Notify.js         Correos y avisos (pestañas Envios y Notificaciones)
   Registro.js       Historial de cambios
   Setup.js          Función instalar(): crea las pestañas
@@ -115,10 +116,11 @@ En la pestaña `Peluqueros`, agregue una fila con:
 | `recibe_reservas` | `SI` |
 | `activo` | `SI` (ponga `NO` para quitarle el acceso) |
 
-Luego, en la pestaña `HorarioSemanal`, una fila por cada día que trabaja:
-`peluquero_id`, `dia_semana` (lunes, martes…), `inicio` y `fin` (por ejemplo
-`09:00` y `19:00`). Los descansos van en `Descansos` de la misma forma. Desde la
-fase 4 esto se hará desde el panel.
+El peluquero configura su jornada, descansos, vacaciones, días libres,
+permisos, bloqueos y horarios especiales desde **Mi horario** en su panel.
+Si un cambio afecta citas ya confirmadas, la app muestra la lista antes de
+guardarlo y pregunta si cancelarlas (avisando a los clientes por correo) o
+conservarlas para moverlas una por una.
 
 El peluquero entra desde el enlace **Acceso peluqueros** al pie de la página y
 marca en **Servicios** qué servicios presta. Para cerrar todas sus sesiones
@@ -143,7 +145,20 @@ abiertas (por ejemplo, si pierde el celular), sume 1 a su `version_sesion`.
 5. Publique una nueva versión de la API (ver arriba), porque esta fase usa un
    permiso nuevo para consultar a Google.
 
-## Publicar la página en GitHub Pages
+## Publicar la página en Netlify (recomendado)
+
+1. Entre a https://app.netlify.com e inicie sesión con su cuenta de GitHub.
+2. **Add new site → Import an existing project → GitHub** y elija
+   `classicsbarbershopcali`.
+3. Rama: `main`. No cambie nada más: el archivo `netlify.toml` ya dice cómo
+   construir y qué carpeta publicar. Pulse **Deploy**.
+4. Cada cambio en `main` se publica solo. La dirección (algo como
+   `https://nombre.netlify.app`) aparece en el panel de Netlify; puede cambiar
+   el nombre en **Site configuration → Change site name**.
+5. Agregue esa dirección en **Orígenes de JavaScript autorizados** del ID de
+   cliente de Google (ver arriba) para que funcione el inicio de sesión.
+
+## Publicar la página en GitHub Pages (alternativa)
 
 1. El repositorio debe ser **público** (GitHub Pages gratis no publica
    repositorios privados).
@@ -186,5 +201,5 @@ pruebas en cada cambio.
 | 1 | Base, pestañas de la hoja, motor de disponibilidad | Hecha |
 | 2 | Reserva del cliente (página web + API) | Hecha |
 | 3 | Inicio de sesión con Google y agenda del peluquero | Hecha |
-| 4 | Horario, descansos, bloqueos, vacaciones y ausencias | Pendiente |
-| 5 | Notificaciones, historial y publicación en GitHub Pages | Pendiente |
+| 4 | Horario, descansos, bloqueos, vacaciones y ausencias | Hecha |
+| 5 | Notificaciones, historial y publicación | Pendiente |

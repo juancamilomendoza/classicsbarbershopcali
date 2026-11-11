@@ -96,6 +96,33 @@ var ACCIONES_PELUQUERO = {
   'registro': function (p) {
     return registroDelPeluquero(p);
   },
+  'horario': function (p) {
+    return horarioDelPeluquero(p);
+  },
+  'horario.semana': function (p, d) {
+    return guardarSemana(p, d.dias, d.resolucion);
+  },
+  'horario.descanso': function (p, d) {
+    return agregarDescanso(p, d, d.resolucion);
+  },
+  'horario.descanso.borrar': function (p, d) {
+    return borrarDescanso(p, d.id);
+  },
+  'horario.especial': function (p, d) {
+    return guardarEspecial(p, d, d.resolucion);
+  },
+  'horario.especial.borrar': function (p, d) {
+    return borrarEspecial(p, d.id, d.resolucion);
+  },
+  'horario.ausencia': function (p, d) {
+    return agregarAusencia(p, d, d.resolucion);
+  },
+  'horario.ausencia.terminar': function (p, d) {
+    return terminarAusencia(p, d.id);
+  },
+  'horario.reservas': function (p, d) {
+    return cambiarRecibeReservas(p, d.recibe);
+  },
 };
 
 /** Ejecuta una acción y devuelve el objeto de respuesta (sin envolver en HTTP). */

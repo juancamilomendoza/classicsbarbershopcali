@@ -10,7 +10,7 @@
   var ARCHIVOS = [
     'Config.js', 'Errors.js', 'Time.js', 'Schema.js', 'Db.js', 'SheetsBackend.js', 'Availability.js',
     'Agenda.js', 'Registro.js', 'Notify.js', 'Bookings.js', 'Clientes.js', 'Sesiones.js', 'GoogleAuth.js',
-    'Peluqueros.js', 'Setup.js', 'Api.js',
+    'Peluqueros.js', 'Horario.js', 'Setup.js', 'Api.js',
   ];
   var LLAVE = 'tunero-demo-hoja-v2';
 
