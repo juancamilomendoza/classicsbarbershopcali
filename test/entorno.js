@@ -28,6 +28,9 @@ function formatoFecha(fecha, zona) {
 function crearEntorno({ ahora = '2026-11-11T15:00:00-05:00' } = {}) {
   const hojas = {};
   const candado = { alTomar: null, tomado: false };
+  const correos = [];
+  const cache = new Map();
+  const correo = { falla: false };
 
   const contexto = {
     console,
@@ -54,6 +57,18 @@ function crearEntorno({ ahora = '2026-11-11T15:00:00-05:00' } = {}) {
       }),
     },
     SpreadsheetApp: { flush() {} },
+    MailApp: {
+      sendEmail(mensaje) {
+        if (correo.falla) throw new Error('Cuota de correo agotada');
+        correos.push(mensaje);
+      },
+    },
+    CacheService: {
+      getScriptCache: () => ({
+        get: (k) => (cache.has(k) ? cache.get(k) : null),
+        put: (k, v) => cache.set(k, v),
+      }),
+    },
     Logger: { log() {} },
   };
   vm.createContext(contexto);
@@ -86,6 +101,8 @@ function crearEntorno({ ahora = '2026-11-11T15:00:00-05:00' } = {}) {
     g,
     hojas,
     candado,
+    correos,
+    correo,
     fijarAhora(iso) {
       instante = new Date(iso);
     },

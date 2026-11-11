@@ -83,3 +83,18 @@ function numeroDiaSemana(nombre) {
   var i = DIAS_SEMANA.indexOf(limpio);
   return i === -1 ? null : i;
 }
+
+var NOMBRES_DIA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+var NOMBRES_MES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+/** '2026-11-12' → 'jueves 12 de noviembre'. */
+function fechaLegible(fecha) {
+  return NOMBRES_DIA[diaSemana(fecha)] + ' ' + Number(fecha.slice(8, 10)) + ' de ' + NOMBRES_MES[Number(fecha.slice(5, 7)) - 1];
+}
+
+/** 870 → '2:30 p. m.'. */
+function horaLegible(minutos) {
+  var h = Math.floor(minutos / 60);
+  var m = minutos % 60;
+  return (h % 12 === 0 ? 12 : h % 12) + ':' + (m < 10 ? '0' : '') + m + (h < 12 ? ' a. m.' : ' p. m.');
+}

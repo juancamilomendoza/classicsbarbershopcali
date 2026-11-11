@@ -4,7 +4,8 @@
   "private": true,
   "description": "Reservas y agenda de TUNERO CLASSIC BARBER: web en GitHub Pages + API en Google Apps Script + datos en Google Sheets",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "web": "node scripts/servidor-local.js"
   },
   "engines": {
     "node": ">=20"

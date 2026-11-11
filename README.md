@@ -9,7 +9,7 @@ Todo funciona con servicios gratuitos:
 
 | Pieza | Dónde vive | Qué hace |
 | --- | --- | --- |
-| Página web | GitHub Pages (`web/`, fase 2) | Pantallas para clientes y peluqueros |
+| Página web | GitHub Pages (`web/`) | Pantallas para clientes y peluqueros |
 | API | Google Apps Script (`apps-script/`) | Reglas de negocio, horarios, permisos, correos |
 | Datos | Google Sheets | Una pestaña por tabla |
 
@@ -45,9 +45,16 @@ apps-script/        Código de la API (se copia al proyecto de Apps Script)
   Availability.js   Motor de disponibilidad (cálculo de horarios libres)
   Agenda.js         Carga la agenda de un peluquero desde la hoja
   Bookings.js       Creación de citas
+  Clientes.js       Consultar, cancelar y reprogramar con celular + código
+  Notify.js         Correos y avisos (pestañas Envios y Notificaciones)
   Registro.js       Historial de cambios
   Setup.js          Función instalar(): crea las pestañas
+  Api.js            Punto de entrada de la API (doPost)
+web/                Página web (HTML, CSS y JavaScript, sin compilar)
+  js/config.js      Dirección de la API
+  js/demo.js        Modo demostración (sin API, datos en el navegador)
 test/               Pruebas automáticas (Node.js)
+scripts/            Servidor local para probar la página
 ```
 
 ## Instalar la hoja (fase 1)
@@ -71,6 +78,41 @@ test/               Pruebas automáticas (Node.js)
 > valida reglas que la hoja no ve. Puede agregar columnas propias al final de
 > cualquier pestaña: la app las conserva.
 
+## Publicar la API
+
+1. En el editor de Apps Script, pulse **Implementar → Nueva implementación**.
+2. Tipo: **Aplicación web**. *Ejecutar como*: **Yo**. *Quién tiene acceso*:
+   **Cualquier usuario**. Pulse **Implementar** y autorice los permisos (hoja y
+   envío de correos).
+3. Copie la **URL de la aplicación web** (termina en `/exec`) y péguela en
+   `API_URL` dentro de [`web/js/config.js`](web/js/config.js).
+
+Cada vez que cambie el código de Apps Script, use **Implementar → Gestionar
+implementaciones → Editar → Versión: nueva** para que la URL siga siendo la misma.
+
+Para reintentar correos fallidos automáticamente, en **Activadores** (reloj)
+agregue uno para la función `reintentarEnvios`, por tiempo, cada hora.
+
+## Publicar la página en GitHub Pages
+
+1. El repositorio debe ser **público** (GitHub Pages gratis no publica
+   repositorios privados).
+2. En GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+3. Cada cambio en la rama `main` publica la página automáticamente. La dirección
+   aparece en **Settings → Pages**.
+
+Mientras `API_URL` esté vacía, la página funciona en **modo demostración**:
+ejecuta la misma lógica en el navegador con dos peluqueros de ejemplo y guarda
+los datos solo en ese equipo. Sirve para probar el flujo antes de conectar la hoja.
+
+## Probar la página en su computador
+
+```
+npm run web
+```
+
+y abra http://localhost:8080 (modo demostración).
+
 ## Pruebas
 
 Requiere Node.js 20 o superior. No hay dependencias que instalar.
@@ -82,16 +124,17 @@ npm test
 Las pruebas cargan el código de `apps-script/` con una hoja en memoria y
 verifican los criterios de aceptación del documento de requerimientos:
 duraciones de 25 y 55 minutos, turnos que no caben antes de un descanso o del
-cierre, vacaciones, reservas simultáneas, reservas solo para mañana y el
-regreso de la disponibilidad al terminar unas vacaciones. GitHub ejecuta las
+cierre, vacaciones, reservas simultáneas, reservas solo para mañana, el
+regreso de la disponibilidad al terminar unas vacaciones y que nadie pueda ver
+la cita de otra persona cambiando el código o el celular. GitHub ejecuta las
 pruebas en cada cambio.
 
 ## Plan
 
 | Fase | Contenido | Estado |
 | --- | --- | --- |
-| 1 | Base, pestañas de la hoja, motor de disponibilidad | Este cambio |
-| 2 | Reserva del cliente (página web + API) | Pendiente |
+| 1 | Base, pestañas de la hoja, motor de disponibilidad | Hecha |
+| 2 | Reserva del cliente (página web + API) | Hecha |
 | 3 | Agenda del peluquero | Pendiente |
 | 4 | Horario, descansos, bloqueos, vacaciones y ausencias | Pendiente |
 | 5 | Notificaciones, historial y publicación en GitHub Pages | Pendiente |
